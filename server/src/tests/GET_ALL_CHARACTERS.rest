@@ -1,0 +1,1 @@
+GET http://localhost:3001/characters HTTP/1.1
