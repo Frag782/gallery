@@ -2,58 +2,59 @@ const config = require('../utils/config');
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
-const uuid = require('uuid');
 
-/* Returns: Promise<character[]>
-** character = {name:string, path:string, thumbnail:string}
-*/
-exports.getAll = () => {
-    const allCharacters = [];
-
-    const readModelDirectories = () => {
-        return fsp.readdir(config.CHARACTERS_DIRECTORY)
-            .then( (directories) => {
-                const promises = directories.map(readCharacterDirectory);
-                return Promise.all(promises)
-                    .then(() => allCharacters);
-            })
-            .catch((error) => { throw error });
-    };
-
-    const readCharacterDirectory = (characterSubdir) => {
-        const subdirPath = path.join(config.CHARACTERS_DIRECTORY, characterSubdir);
-
-        return fsp.readdir(subdirPath)
-            .then((characterFiles) => {
-                const characterData = { 'name': characterSubdir };
-                allCharacters.push(characterData);
-            });
-    };
-
-    return readModelDirectories();
+// Character dirs as { name:string }[]
+exports.getAll = (req, res) => {
+    fsp.readdir(config.CHARACTERS_DIRECTORY)
+        .then( (directories) => {
+            return directories.map( (directory) => { return {'name': directory} });
+        })
+        .then( (data) => res.status(200).json(data))
+        .catch( (error) => res.status(500).send(`ERREUR: ${error}`));
 };
 
-// => Promise path:string
-exports.getThumbnail = (name) => {
-    const characterSubdir = path.join(config.CHARACTERS_DIRECTORY, name);
+// Either thumbnail.* or first as string
+exports.getThumbnail = (req, res) => {
+    const characterName = req.params.name;
+    const characterSubdir = path.join(config.CHARACTERS_DIRECTORY, characterName);
 
-    return fsp.readdir(characterSubdir)
-        .then( (images) => {
-            return path.join(characterSubdir, images[0]);
+    fsp.readdir(characterSubdir)
+        .then( (filenames) => {
+            let thumbnail = filenames.find( (filename) => filename.split('.')[0] === 'thumbnail');
+            return thumbnail ?? filenames[0];
         })
+        .then( (filePath) => { res.status(200).sendFile(path.join(characterSubdir, filePath)); })
+        .catch( (error) => { console.log(error); res.status(500).send(`ERREUR: ${error}`)})
 }
 
-// => Promise files:string[]
-exports.getImages = (name) => {
-    const characterSubdir = path.join(config.CHARACTERS_DIRECTORY, name);
+// Files as string[]
+exports.getFilenames = (req, res) => {
+    const characterName = req.params.name;
+    const characterSubdir = path.join(config.CHARACTERS_DIRECTORY, characterName);
 
-    return fsp.readdir(characterSubdir)
-        .then(files => {
-            
+    fsp.readdir(characterSubdir)
+        .then( (filenames) => filenames )
+        .then( (filenames) => { res.status(200).json(filenames) })
+        .catch(error => res.status(500).send(`ERREUR: ${error}`));
+}
+
+// File as blob
+exports.getImage = (req, res) => {
+    const {char: characterName, file: fileName} = req.query;
+    
+    const characterSubdir = path.join(config.CHARACTERS_DIRECTORY, characterName);
+
+    fsp.readdir(characterSubdir)
+        .then( (files) => {
+            return files.find( (file) => file === fileName );
         })
+        .then( (file) => {
+            if (!file) res.status(400).send('Fichier introuvable');
+            else res.status(200).sendFile(path.join( characterSubdir, fileName ));
+        })
+        .catch( (error) => res.status(500).send(`ERREUR: ${error}`) );
 }
 
-// => sendFile(path)
-exports.getImage = (path) => {
-
-}
+/* @TODO:
+* Changer getAll return type pour string[] - La creation d'objet se fera cote client
+*/

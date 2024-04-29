@@ -7,7 +7,6 @@ const characterRoutes = require('./routes/characterRoutes');
 
 /***** MIDDLEWARES & ROUTES *****/
 app.use(cors());
-app.use(express.static('./assets/characters'));
 app.use(characterRoutes);
 
 app.get('/', (req, res) => { 
