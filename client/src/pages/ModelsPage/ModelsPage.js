@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import PictureFrame from '../../components/PictureFrame/PictureFrame';
+import { useNavigate } from 'react-router-dom';
 
 const ModelsPage = () => {
     const API_URL = 'http://10.0.0.35:3001';
     const [characters, setCharacters] = useState([]);
     const [charactersLoaded, setCharactersLoaded] = useState(false);
+    const navigate = useNavigate();
     
     useEffect(() => {
         fetch(`${API_URL}/characters`, {
@@ -30,11 +32,14 @@ const ModelsPage = () => {
         .catch(err => console.log(err));
     }, []);
 
+    const toCharacter = (character) => { navigate(`/character/${character.name}`) }
+
     return (
         <div id='models-container'>
             {charactersLoaded ? (
                 characters.map(character => (
-                    <PictureFrame key={character.name} name={character.name} path={character.thumbnail} />
+                    <PictureFrame key={character.name} name={character.name} path={character.thumbnail}
+                    onClick={ () => { toCharacter(character) } } />
                 ))) 
                 : (
                     <p>Loading...</p>

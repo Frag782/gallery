@@ -33,9 +33,8 @@ exports.getFilenames = (req, res) => {
     const characterSubdir = path.join(config.CHARACTERS_DIRECTORY, characterName);
 
     fsp.readdir(characterSubdir)
-        .then( (filenames) => filenames )
         .then( (filenames) => { res.status(200).json(filenames) })
-        .catch(error => res.status(500).send(`ERREUR: ${error}`));
+        .catch( (error) => res.status(500).send(`ERREUR: ${error}`));
 }
 
 // File as blob
@@ -52,7 +51,10 @@ exports.getImage = (req, res) => {
             if (!file) res.status(400).send('Fichier introuvable');
             else res.status(200).sendFile(path.join( characterSubdir, fileName ));
         })
-        .catch( (error) => res.status(500).send(`ERREUR: ${error}`) );
+        .catch( (error) => {
+            console.log(error);
+            res.status(500).send(`Erreur lors de la recuperation d'images.`)
+        });
 }
 
 /* @TODO:
